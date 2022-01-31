@@ -16,7 +16,6 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(kableExtra)
-library(gt)
 library(leaflet)
 
 gs4_deauth()
