@@ -1,0 +1,580 @@
+---
+title: "AOH YEAR-END REPORT"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+    orientation: rows
+    theme:
+      navbar-bg: "#ff8008"
+      bg: "#ffc837"
+      fg: "#626466"
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(googlesheets4)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(kableExtra)
+library(gt)
+library(leaflet)
+
+gs4_deauth()
+
+gsheet_url <- "https://docs.google.com/spreadsheets/d/1-mYQ3QWvnW0CDTLKT5GJV7rNp4M-9b2socJQjVQliQ4/edit?usp=sharing"
+
+gsheet_sheet <- "20220120 DRAFT Qualitative with Dummy Data"
+
+df <- read_sheet(ss = gsheet_url, 
+                 sheet = gsheet_sheet,
+                 col_names = TRUE)
+
+df$Data <- as.character(df$Data)
+```
+
+# HOME
+
+## INTRODUCTION
+
+### ABOUT
+
+Commentary
+
+### STRUCTURE
+
+Commentary
+
+## Row
+
+### PRINCIPLES
+
+Commentary
+
+## Row
+
+### Problem Definition
+
+Commentary
+
+## Goals
+
+### GOALS
+
+```{r goal_table}
+df %>% 
+  filter(
+    
+    grepl("Common Agenda", df$`Report Item`, ignore.case = TRUE)) %>%
+  filter(Year == max(Year)) %>%
+  select(Label,
+         Data) %>%
+  kable(col.names = NULL,
+        "html") %>% 
+  kable_styling(
+    
+  ) %>%
+  column_spec(1, width = "5em")
+
+```
+
+# AFFORDABLE HOUSING UNITS
+
+## Row
+
+### HOUSING UNIT SUMMARY
+
+```{r affordable_housing_summary}
+df %>%
+  filter(`Report Item` == "Housing & Shelter") %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  select(Label, starts_with("City District")) %>%
+  pivot_longer(cols = c(-Label),
+               names_to = "District",
+               values_to = "count") %>%
+  group_by(Label) %>%
+  summarise(num_units = sum(count)) %>%
+  pivot_wider(names_from = Label,
+              values_from = num_units) %>%
+  kbl() %>% kable_styling()
+```
+
+## Row
+
+### HOUSING IN SANTA BARBARA
+
+```{r housing_map}
+sb_lat <- maps::us.cities[maps::us.cities$name == "Santa Barbara CA", "lat"]
+sb_long <- maps::us.cities[maps::us.cities$name == "Santa Barbara CA", "long"]
+
+maps::us.cities %>% 
+  filter(name == "Santa Barbara CA") %>%
+  leaflet() %>% 
+  setView(lng = sb_long, 
+          lat = sb_lat, 
+          zoom = 9) %>%
+  addTiles()
+```
+
+## Row
+
+### ADVOCACY FOR AFFORDABLE HOUSING
+
+```{r advocacy_stats}
+df %>%
+  filter(
+    `Report Item` == "Housing & Shelter",
+    grepl("advocacy", Label, ignore.case = TRUE),
+    Units == "Count"
+  ) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  group_by(Label) %>%
+  summarise(total_count = sum(as.integer(Data), na.rm = TRUE)) %>%
+  pivot_wider(names_from = Label,
+              values_from = total_count) %>%
+  kbl() %>% kable_styling() 
+```
+
+### Advocacy highlights
+
+```{r advocacy_highlights}
+df %>%
+  filter(`Report Item` == "Housing & Shelter",
+         grepl("advocacy", Label, ignore.case = TRUE),
+         Units == "Qualitative Description") %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>% 
+  select(Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+# HOUSING RETENTION
+
+## Row
+
+### Housing Retention
+
+```{r housing_retention_summary}
+df %>% 
+  filter(
+    `Report Item` == "Housing Retention",
+    grepl("evictions|retention", Label, ignore.case = TRUE)) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  select(Label, Data) %>%
+  group_by(Label) %>%
+  summarise(
+    label_sum = sum(as.integer(Data), na.rm = TRUE)) %>%
+  pivot_wider(
+    names_from = Label,
+    values_from = label_sum
+  ) %>%
+  kbl() %>% kable_styling() 
+```
+
+## Row
+
+### PARTNER ENGAGEMENT
+
+```{r housing_retention_partner_engagement}
+df %>% 
+  filter(
+    `Report Item` == "Housing Retention",
+    grepl("Engagement and Communication", Label, ignore.case = TRUE)) %>%
+  select(Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+### Testimonials
+
+```{r housing_retention_testimonies}
+df %>% 
+  filter(
+    `Report Item` == "Housing Retention",
+    grepl("testimonies", Label, ignore.case = TRUE)) %>%
+  select(Data) %>%
+  kable(col.names = NULL) %>% kable_styling()
+```
+
+## Row
+
+### Good neighbor handbook
+
+Handbook [link](https://emanlapig.net) or ![](https://media.giphy.com/media/NXp9HM6YeuS0U/giphy.gif)
+
+### Record of increased advocacy and financial resources
+
+# HOMELESSNESS PREVENTION
+
+Row
+--------
+
+### Homelessness Prevention
+
+```{r homelessness_prevention_summary}
+df %>% 
+  filter(
+    `Report Item` == "Homelessness Prevention",
+    grepl("prevention|households assisted|prevention referrals",
+               Label,
+               ignore.case = TRUE)) %>%
+  filter(Year == max(Year, 
+                     na.rm = TRUE)) %>%
+  select(Label, Data) %>%
+  group_by(Label) %>%
+  summarise(
+    label_sum = sum(as.integer(Data), na.rm = TRUE)) %>%
+  pivot_wider(
+    names_from = Label,
+    values_from = label_sum
+  ) %>%
+  kbl() %>% kable_styling()
+```
+
+## Row
+
+### Testimonials
+
+```{r homelessness_prevention_testimonials}
+df %>% 
+  filter(
+    `Report Item` == "Homelessness Prevention",
+    grepl("testimonies", Label, ignore.case = TRUE)) %>%
+  select(Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+## Row
+
+### Prevention training
+
+```{r prevention_training}
+df %>% 
+  filter(
+    `Report Item` == "Homelessness Prevention",
+    grepl("trainings & workshops",
+          Label,
+          ignore.case = TRUE),
+    Units == "Trainings") %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  group_by(Label) %>%
+  summarise(total_count = sum(as.integer(Data), na.rm = TRUE)) %>%
+  pivot_wider(names_from = Label,
+              values_from = total_count) %>%
+  kbl() %>% kable_styling()
+```
+
+### Training description
+
+```{r prevention_training_description}
+df %>% 
+  filter(
+    `Report Item` == "Homelessness Prevention",
+    grepl("trainings & workshops",
+          Label,
+          ignore.case = TRUE),
+    grepl("description",
+          Units,
+          ignore.case = TRUE)) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  select(Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+### Advocacy Opportunities
+
+```{r advocacy_opps}
+df %>% 
+  filter(
+    `Report Item` == "Homelessness Prevention",
+    grepl("advocacy",
+          Label,
+          ignore.case = TRUE),
+    Units == "Advocacy Opportunities") %>% # Should be count
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  group_by(Label) %>%
+  summarise(total_count = sum(as.integer(Data), na.rm = TRUE)) %>%
+  pivot_wider(
+    names_from = Label,
+    values_from = total_count
+  ) %>%
+  kbl() %>% kable_styling()
+```
+
+### Advocacy opportunity descriptions
+
+```{r advocacy_description}
+df %>% 
+  filter(
+    `Report Item` == "Homelessness Prevention",
+    grepl("Advocacy",
+          Label,
+          ignore.case = TRUE),
+    grepl("description",
+          Units,
+          ignore.case = TRUE)) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  select(Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+# CASE MANAGEMENT
+
+## Row
+
+### Case manager hours
+
+```{r case_mgr_hrs}
+df %>%
+  filter(`Report Item` == "Case Management",
+         grepl("case manager hours",
+               Label,
+               ignore.case = TRUE)) %>%
+  select(Year,
+         Source,
+         Data,
+         Label) %>%
+  group_by(Source, Label) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  group_by(Source, Label) %>%
+  summarise(total_hours = sum(as.integer(Data), na.rm = TRUE)) %>%
+  pivot_wider(names_from = Label,
+              values_from = total_hours) %>%
+  ungroup() %>%
+  kbl() %>% kable_styling()
+```
+
+## Row
+
+### Cases managed
+
+```{r cases_managed}
+df %>%
+  filter(`Report Item` == "Case Management",
+         grepl("cases managed",
+               Label,
+               ignore.case = TRUE)) %>%
+  select(Year,
+         starts_with("City District"),
+         Label) %>%
+  group_by(Label) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  pivot_longer(cols = starts_with("City District"),
+               names_to = "district",
+               values_to = "count") %>%
+  group_by(Label) %>%
+  summarise(total_count = sum(count, na.rm = TRUE)) %>%
+  pivot_wider(names_from = Label,
+              values_from = total_count) %>%
+  kbl() %>% kable_styling()
+```
+
+## Row
+
+### Clients referred
+
+```{r clients_referred}
+df %>%
+  filter(`Report Item` == "Case Management",
+         grepl("clients referred",
+               Label,
+               ignore.case = TRUE)) %>%
+  select(Year,
+         starts_with("City District"),
+         Label) %>%
+  group_by(Label) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  pivot_longer(cols = starts_with("City District"),
+               names_to = "district",
+               values_to = "count") %>%
+  group_by(Label) %>%
+  summarise(
+    total_count = sum(count, na.rm = TRUE)
+  ) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+```
+
+## Row
+
+### Clients diverted
+
+```{r clients_diverted}
+df %>%
+  filter(`Report Item` == "Case Management",
+         grepl("clients diverted",
+               Label,
+               ignore.case = TRUE)) %>%
+  select(Year,
+         Data,
+         Label) %>%
+  group_by(Label) %>%
+  filter(Year == max(Year, na.rm = TRUE)) %>%
+  group_by(Label) %>%
+  summarise(total_count = sum(as.integer(Data),na.rm =  TRUE))  %>%
+  pivot_wider(
+    names_from = Label,
+    values_from = total_count
+  ) %>%
+  kbl() %>% kable_styling()
+```
+
+## Map
+
+### Case management
+
+```{r case_mgmt_map}
+sb_lat <- maps::us.cities[maps::us.cities$name == "Santa Barbara CA", "lat"]
+sb_long <- maps::us.cities[maps::us.cities$name == "Santa Barbara CA", "long"]
+
+maps::us.cities %>% 
+  filter(name == "Santa Barbara CA") %>%
+  leaflet() %>% 
+  setView(lng = sb_long, 
+          lat = sb_lat, 
+          zoom = 12) %>%
+  addTiles()
+```
+
+# COLLABORATIVE STRUCTURE
+
+### Steering committee
+
+```{r}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Steering Committee",
+    `Sub label` == "Purpose") %>%
+  select(Data) %>%
+  kbl() %>% kable_styling()
+```
+
+## Partners
+
+### Partners
+
+```{r partners}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Steering Committee",
+    `Sub label` == "Partners") %>%
+  select(`Sub-sub label`, Data) %>%
+  pivot_wider(names_from = `Sub-sub label`,
+              values_from = Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+
+```
+
+## Row
+
+### Meetings
+
+```{r meetings}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Steering Committee",
+    `Sub label` == "Meetings") %>%
+  select(Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+
+```
+
+## Row
+
+### Working groups summary
+
+```{r working_groups_summary}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Working Groups",
+    `Sub label` == "Purpose") %>%
+  select(Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+Row
+------
+
+### Working group detail #1
+
+```{r working_groups1}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Working Groups",
+    `Sub label` == "Housing/Shelter") %>%
+  select(`Sub-sub label`, 
+         Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+### Working group detail #2
+
+```{r working_groups2}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Working Groups",
+    `Sub label` == "Housing Retention") %>%
+  select(`Sub-sub label`, 
+         Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+## Row
+
+### Working group detail #3
+
+```{r working_groups3}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Working Groups",
+    `Sub label` == "Homelessness Prevention") %>%
+  select(`Sub-sub label`, 
+         Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+### Working group detail #4
+
+```{r working_groups4}
+df %>%
+  filter(
+    `Report Item` == "Collaborative Structure",
+    Label == "Working Groups",
+    `Sub label` == "Lived Experience") %>%
+  select(`Sub-sub label`, 
+         Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+```
+
+## Row
+
+### Regional Action Plan Regions
+
+```{r}
+df %>%
+  filter(`Report Item` == "Regional Action Plans") %>%
+  filter(Year == max(Year, na.rm = TRUE) | is.na(Year)) %>%
+  select(`Regional Action Plan Region`,
+         Label,
+         Data) %>%
+  kbl(col.names = NULL) %>% kable_styling()
+  
+
+  
+  
+```
